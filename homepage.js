@@ -1,62 +1,84 @@
-//importa as funções necessárias do firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import {getAuth, GoogleAuthProvider, signInWithPopUp, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import { getFireStore, setDoc, doc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import {
+    getAuth, 
+    signOut, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
-//configurações do firebase
-const firebaseconfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyDVjLXgAMoFWj4m4OBPuf0Bv_rN2t4-6FQ",
-  authDomain: "auth-de6d7.firebaseapp.com",
-  projectId: "auth-de6d7",
-  storageBucket: "auth-de6d7.firebasestorage.app",
-  messagingSenderId: "739004305886",
-  appId: "1:739004305886:web:095eda4541796b8dbb4d4f"
+    authDomain: "auth-de6d7.firebaseapp.com",
+    projectId: "auth-de6d7",
+    storageBucket: "auth-de6d7.firebasestorage.app",
+    messagingSenderId: "739004305886",
+    appId: "1:739004305886:web:095eda4541796b8dbb4d4f"
 };
 
-//Inicializa o Firebase
+// Apenas Auth - SEM Firestore
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(); //configura o firebase authentication
-const db = getFirestore(); //configura o firestore
+const auth = getAuth(app);
 
-//monitora o estado de autenticação do usuário
-onAuthStateChanged(auth, (user) => {
-    //busca de id do usuário autenticado do usuário
-    const loggedInUserId = localStorage.getItem('loggedInUserId');
-
-    //se o id estiver no localStorage, tenta obter os dados do firestore
-    if (loggedInUserId) {
-        console.log(user);
-        const docRef = doc(db, "users", loggedInUserId); //referência ao documento do usuário no firestore
-
-        getDoc(docRef) //busca o documento
-        .then((docSnap) => {
-            //se o documento existir, exibe os dados na interface
-            if (docSnap.exists()) {
-                const userData = docSNap.data();
-                document.getElementById('loggedUserName').innerText = userData.firstName;
-                document.getElementById('loggedUserEmail').innerText = userData.email;
-                document.getElementById('loggedUserLName').innerText = userData.lastName;
-            } else {
-                console.log("ID não econtrado no documento");
-            }
-        })
-        .catch((error) => {
-            console.log("documento não encontrado");
-        });
+// Função para mostrar dados do usuário
+function displayUserInfo(user) {
+    console.log('📱 Mostrando dados do usuário:', user.email);
+    
+    // Elementos da página
+    const emailElement = document.getElementById('loggedUserEmail');
+    const firstNameElement = document.getElementById('loggedUserFName');
+    const lastNameElement = document.getElementById('loggedUserLName');
+    
+    // Sempre mostra o email
+    if (emailElement) {
+        emailElement.textContent = user.email || 'Email não disponível';
+    }
+    
+    // Para login com Google (tem displayName)
+    if (user.displayName) {
+        const names = user.displayName.split(' ');
+        if (firstNameElement) firstNameElement.textContent = names[0] || 'Usuário';
+        if (lastNameElement) lastNameElement.textContent = names.slice(1).join(' ') || '';
     } else {
-        console.log("ID do usuário não encontrado no localStorage");
+        // Para login com email/senha (não tem nome)
+        if (firstNameElement) firstNameElement.textContent = 'Usuário';
+        if (lastNameElement) lastNameElement.textContent = '';
+    }
+}
+
+// Monitora autenticação
+onAuthStateChanged(auth, (user) => {
+    console.log('🔐 Estado da autenticação:', user ? 'Logado' : 'Deslogado');
+    
+    if (user) {
+        // Usuário logado - mostra informações
+        displayUserInfo(user);
+    } else {
+        // Usuário não logado - redireciona
+        console.log('➡️ Redirecionando para login...');
+        window.location.href = 'index.html';
     }
 });
 
-//lógica de logout
-const logoutButton = doc.getElementById('logout');
-logoutButton.addEventListener('click', () => {
-    localStorage.removeItem('loggedInUserId'); //remove o ID do LocalStorage
-    signOut(auth) //realiza logout
-    .then(() => {
-        window.location.href = 'index.html'; //redireciona a página de login
-    })
-    .catch((error) => {
-        console.error('Error Signing out:', error);
-    });
+// Logout
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutButton = document.getElementById('logout');
+    
+    if (logoutButton) {
+        logoutButton.addEventListener('click', function() {
+            if (confirm('Tem certeza que deseja sair?')) {
+                console.log('🚪 Fazendo logout...');
+                signOut(auth)
+                    .then(() => {
+                        console.log('✅ Logout realizado');
+                        window.location.href = 'index.html';
+                    })
+                    .catch((error) => {
+                        console.error('❌ Erro no logout:', error);
+                        // Redireciona mesmo com erro
+                        window.location.href = 'index.html';
+                    });
+            }
+        });
+    }
+    
+    console.log('✅ homepage.js carregado com sucesso!');
 });
